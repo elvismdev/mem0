@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { LLM, LLMResponse } from "./base";
+import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import { LLM, LLMResponse, ResponseFormat } from "./base";
 import { LLMConfig, Message } from "../types";
 
 const CLAUDE_CODE_VERSION = "2.1.2";
@@ -14,6 +15,16 @@ const OAT_HEADERS = {
 
 export function isOAuthToken(token: string): boolean {
   return token.includes("sk-ant-oat");
+}
+
+const STRUCTURED_OUTPUT_PREFIXES = [
+  "claude-opus-4",
+  "claude-sonnet-4",
+  "claude-haiku-4",
+];
+
+export function supportsStructuredOutputs(model: string): boolean {
+  return STRUCTURED_OUTPUT_PREFIXES.some((prefix) => model.startsWith(prefix));
 }
 
 export class AnthropicLLM implements LLM {
@@ -51,13 +62,13 @@ export class AnthropicLLM implements LLM {
 
   async generateResponse(
     messages: Message[],
-    responseFormat?: { type: string },
+    responseFormat?: ResponseFormat,
   ): Promise<string> {
     // Extract system message if present
     const systemMessage = messages.find((msg) => msg.role === "system");
     const otherMessages = messages.filter((msg) => msg.role !== "system");
 
-    const response = await this.client.messages.create({
+    const params: any = {
       model: this.model,
       messages: otherMessages.map((msg) => ({
         role: msg.role as "user" | "assistant",
@@ -71,11 +82,19 @@ export class AnthropicLLM implements LLM {
           ? systemMessage.content
           : undefined,
       max_tokens: this.maxTokens,
-    });
+    };
+
+    if (responseFormat?.schema && supportsStructuredOutputs(this.model)) {
+      params.output_config = {
+        format: zodOutputFormat(responseFormat.schema),
+      };
+    }
+
+    const response = await this.client.messages.create(params);
 
     if (response.stop_reason === "max_tokens") {
       console.warn(
-        `[mem0] Anthropic response truncated (stop_reason: "max_tokens", max_tokens: ${4096}). Consider increasing maxTokens in your LLM config.`,
+        `[mem0] Anthropic response truncated (stop_reason: "max_tokens", max_tokens: ${this.maxTokens}). Consider increasing maxTokens in your LLM config.`,
       );
     }
 
