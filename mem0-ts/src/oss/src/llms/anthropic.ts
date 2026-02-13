@@ -73,6 +73,12 @@ export class AnthropicLLM implements LLM {
       max_tokens: this.maxTokens,
     });
 
+    if (response.stop_reason === "max_tokens") {
+      console.warn(
+        `[mem0] Anthropic response truncated (stop_reason: "max_tokens", max_tokens: ${4096}). Consider increasing maxTokens in your LLM config.`,
+      );
+    }
+
     const firstBlock = response.content[0];
     if (firstBlock.type === "text") {
       return firstBlock.text;
