@@ -44,7 +44,7 @@ export class AnthropicLLM implements LLM {
       this.client = new Anthropic({ apiKey: token });
     }
 
-    this.model = config.model || "claude-3-sonnet-20240229";
+    this.model = config.model || "claude-sonnet-4-5-20250929";
   }
 
   async generateResponse(
