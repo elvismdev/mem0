@@ -16,7 +16,9 @@ import {
 } from "../utils/factory";
 import {
   FactRetrievalSchema,
+  FactRetrievalJsonSchema,
   MemoryUpdateSchema,
+  MemoryUpdateJsonSchema,
   getFactRetrievalMessages,
   getUpdateMemoryMessages,
   parseMessages,
@@ -257,7 +259,11 @@ export class Memory {
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      { type: "json_object", schema: FactRetrievalSchema },
+      {
+        type: "json_object",
+        schema: FactRetrievalSchema,
+        jsonSchema: FactRetrievalJsonSchema,
+      },
     );
 
     let facts: string[] = [];
@@ -309,7 +315,11 @@ export class Memory {
 
     const updateResponse = await this.llm.generateResponse(
       [{ role: "user", content: updatePrompt }],
-      { type: "json_object", schema: MemoryUpdateSchema },
+      {
+        type: "json_object",
+        schema: MemoryUpdateSchema,
+        jsonSchema: MemoryUpdateJsonSchema,
+      },
     );
 
     let memoryActions: any[] = [];
